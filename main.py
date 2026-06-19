@@ -6,6 +6,8 @@ from core.name_checker import check_all_sites
 from core.email_checker import check_all_emails
 from core.email_checker import check_holehe
 from core.email_checker import check_gravatar
+from core.email_checker import validate_mx_records
+from core.email_checker import is_disposable
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 logging.getLogger("charsetnormalizer").setLevel(logging.ERROR)
@@ -13,11 +15,23 @@ logging.getLogger("bs4").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
 async def run_email_pipeline(email):
-    # print(f"Checking {email}...")
-    # await check_all_emails(email)
+    print(f"Checking if {email} is fake...")
+    is_valid = await validate_mx_records(email)
 
-    # print (f"Scanning websites via Holehe...")
-    # trio.run(check_holehe, email)
+    if not is_valid: 
+        return
+    
+    print(f"Checking is {email} is disposable...")
+    is_valid = is_disposable(email)
+
+    if is_valid:
+        return
+    
+    print(f"Checking {email}...")
+    await check_all_emails(email)
+
+    print (f"Scanning websites via Holehe...")
+    trio.run(check_holehe, email)
 
     print (f"Scanning via Gravatar...")
     await check_gravatar(email)

@@ -6,11 +6,14 @@ from holehe import core as holehe_core
 import importlib
 import os
 import holehe
+import dns.asyncresolver
 import httpx
 import trio 
 import hashlib
 import time
 from core.config import EMAIL_SERVICES
+
+_disposable_domains_cache = None
 
 class HoleheArgs:
     def __init__(self):
@@ -167,10 +170,40 @@ async def check_gravatar(email):
                     print(f"   --> No linked social media")
 
             elif response.status_code == 404:
-                print("Profile nor found")
+                print("Profile not found")
             else:
                 print (f"{response.status_code}: unreachable")
 
 
+async def validate_mx_records(email):
+    domain = email.split('@')[1]
+    try:
+        await dns.asyncresolver.resolve(domain, "MX")
+        print("Email is not fake")
+        return True
+    except Exception:
+        print("Email is fake")
+        return False
+    
+def is_disposable(email):
+    global _disposable_domains_cache
 
+    domain = email.split('@')[1]
 
+    if _disposable_domains_cache is None:
+        _disposable_domains_cache = set()
+        try:
+            with open("disposable_email_blocklist.conf", "r", encoding="utf-8") as file:
+                for line in file:
+                    line = line.strip()
+                    if line:
+                        _disposable_domains_cache.add(line)
+        except Exception as e:
+            print(e)
+            return False
+        
+    if domain in _disposable_domains_cache:
+        print("Email is disposable")
+        return True
+    print("Email is not disposable")
+    return False
