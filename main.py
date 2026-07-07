@@ -2,6 +2,9 @@ import asyncio
 import trio
 import logging
 import warnings
+import os
+from dotenv import load_dotenv
+import telethon
 from core.name_checker import check_all_sites
 from core.email_checker import check_all_emails
 from core.email_checker import check_holehe
@@ -15,6 +18,17 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 logging.getLogger("charsetnormalizer").setLevel(logging.ERROR)
 logging.getLogger("bs4").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
+
+load_dotenv()
+API_ID = os.getenv("TELEGRAM_API_ID")
+API_HASH = os.getenv("TELEGRAM_API_HASH")
+_TG_CLIENT_ = None
+
+async def init_telegram_client():
+    global _TG_CLIENT_
+    if _TG_CLIENT_ is None:
+        _TG_CLIENT_ = telethon.TelegramClient('osint_session', API_ID, API_HASH)
+    await _TG_CLIENT_.start()
 
 async def run_email_pipeline(email):
     print(f"Checking if {email} is fake...")
@@ -39,8 +53,10 @@ async def run_email_pipeline(email):
     await check_gravatar(email)
 
 async def run_phone_pipeline(phone):
+    
     print (f"Checking {phone}...")
-    await check_phone_number(phone)
+    # await init_telegram_client()
+    await check_phone_number(phone, _TG_CLIENT_)
 
 def main():
     operation = input("Choose an operation:\n1. Find by username\n2. Find by email\n3. Find by phone number")
