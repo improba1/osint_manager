@@ -12,6 +12,8 @@ from core.email_checker import check_gravatar
 from core.email_checker import validate_mx_records
 from core.email_checker import is_disposable
 
+from core.file_checker import extract_image_metadata
+
 from core.phone_checker import check_phone_number
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -59,7 +61,7 @@ async def run_phone_pipeline(phone):
     await check_phone_number(phone, _TG_CLIENT_)
 
 def main():
-    operation = input("Choose an operation:\n1. Find by username\n2. Find by email\n3. Find by phone number")
+    operation = input("Choose an operation:\n1. Find by username\n2. Find by email\n3. Find by phone number\n4. Extract metadata")
     if operation == '1':
         username = input("Enter an username: ")
         print(f"Checking {username}...")
@@ -70,6 +72,9 @@ def main():
     if operation == '3':
         phone = input("Enter a phone number: ")
         asyncio.run(run_phone_pipeline(phone))
+    if operation == '4':
+        file_path = input("Enter file path: ")
+        extract_image_metadata(file_path)
 
 
 if __name__ == "__main__":
