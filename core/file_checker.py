@@ -1,14 +1,22 @@
 from PIL import Image
+import io
 from PIL.ExifTags import TAGS, GPSTAGS
 
 def _count_gps(deg, min, sec):
     result = float(deg) + (float(min) / 60) + (float(sec) / 3600)
     return result
 
-def extract_image_metadata(file_path):
-    result = { "status":"processing", "has_exif": False, "error_message": "", "hardware": {}, "software": {}, "gps": {} }
+def extract_image_metadata(file_bytes):
+    result = { 
+        "status":"processing", 
+        "has_exif": False, 
+        "error_message": "", 
+        "hardware": {}, 
+        "software": {}, 
+        "gps": {} 
+    }
     try:
-        with Image.open(file_path) as img:
+        with Image.open(io.BytesIO(file_bytes)) as img:
             raw_exif = img.getexif()
             print(raw_exif)
             if raw_exif:
@@ -53,8 +61,8 @@ def extract_image_metadata(file_path):
     except Exception as e:   
         result["error_message"] = str(e)
         result["status"] = "error"
-        print(result)
+        # print(result)
         return result
     result["status"] = "success"
-    print(result)
+    # print(result)
     return result

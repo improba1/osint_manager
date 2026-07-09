@@ -3,9 +3,6 @@ from colorama import Fore, Style
 import copy
 from curl_cffi.requests import AsyncSession
 from holehe import core as holehe_core
-import importlib
-import os
-import holehe
 import dns.asyncresolver
 import httpx
 import trio 
@@ -24,21 +21,29 @@ class HoleheArgs:
         self.csvoutput = False
         self.timeout = 10
 
-def fill_payload(payload, email):
+def _fill_payload(payload, email):
     for key, value in payload.items():
         if isinstance(value, dict):
-            fill_payload(value, email)
+            _fill_payload(value, email)
         elif isinstance(value, str):
             payload[key] = value.format(email)
     return payload
 
-async def check_single_email(url, method, service_name, semaphore, template, error_marker):
+async def _check_single_email(url, method, service_name, semaphore, template, error_marker):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
         "Connection": "keep-alive"
    }
+    result = {
+        "service_name": service_name, 
+        "status": "", 
+        "error_message": "", 
+        "url" : url, 
+        "leaks" : 0, 
+        "leaks_source" : {}
+    }
     async with semaphore:
       try:
          async with AsyncSession() as session:
@@ -54,8 +59,10 @@ async def check_single_email(url, method, service_name, semaphore, template, err
                 html_content = response.text
                 html_lowercased = html_content.lower()
                 if error_marker in html_lowercased:
-                    print (f"[-] {service_name}: not found")
-                    return service_name, False, url
+                    result["status"] = "error"
+                    result["error_message"] = "Not found"
+                    # print (f"[-] {service_name}: not found")
+                    return result
 
                 else:
                     data = response.json()
@@ -65,28 +72,38 @@ async def check_single_email(url, method, service_name, semaphore, template, err
                         sources = sources[0]
                     if leaks_amount == 0:
                         leaks_amount = len(sources)
-                    print (f"{Fore.GREEN}[+]{Style.RESET_ALL} {service_name} -> {url} (found {Fore.RED}{leaks_amount}{Style.RESET_ALL} leaks)")
+                        result["leaks"] = leaks_amount
+                    # print (f"{Fore.GREEN}[+]{Style.RESET_ALL} {service_name} -> {url} (found {Fore.RED}{leaks_amount}{Style.RESET_ALL} leaks)")
                     for source in sources:
                         if isinstance(source, dict):
                             name = source.get("name", "Unknown")
                             date = source.get("date", "No date")
                             date_str = f"({date})" if date else ""
-                            print (f"   --> {name} {date_str}")
+                            result["leaks_source"][name] = date_str
+                            # print (f"   --> {name} {date_str}")
                         else:
                             name = source
                             date_str = ""
-                            print (f"   --> {name} {date_str}")
-                    return service_name, True, url
+                            result["leaks_source"][name] = date_str
+                            # print (f"   --> {name} {date_str}")
+                    result["status"] = "success"
+                    return result
                 
             elif response.status_code == 404:
-                print(f"[-] {service_name}: 404 not found")
-                return service_name, False, url
+                result["status"] = "error"
+                result["error_message"] = "Not found"
+                # print(f"[-] {service_name}: 404 not found")
+                return result
             else:
-                print(f"[-] {service_name}: {response.status_code}")
-                return service_name, False, url
+                result["status"] = "error"
+                result["error_message"] = response.status_code
+                # print(f"[-] {service_name}: {response.status_code}")
+                return result
       except Exception:
-         print(f"[X] {service_name}: unreachable")
-         return service_name, False, url
+         result["status"] = "error"
+         result["error_message"] = "Unreachable"
+        #  print(f"[X] {service_name}: unreachable")
+         return result
 
 async def check_all_emails(email):
     semaphore = asyncio.Semaphore(5)
@@ -97,8 +114,8 @@ async def check_all_emails(email):
         method = service_data["method"]
         marker = service_data["error_marker"]
         payload_tmp = copy.deepcopy(service_data["payload_template"])
-        template = fill_payload(payload_tmp, email)
-        task = asyncio.create_task(check_single_email(ready_url, method, service_name, semaphore, template, marker))
+        template = _fill_payload(payload_tmp, email)
+        task = asyncio.create_task(_check_single_email(ready_url, method, service_name, semaphore, template, marker))
         tasks.append(task)
         await asyncio.sleep(0.2)
     results = await asyncio.gather(*tasks)
@@ -108,17 +125,16 @@ async def check_holehe(email):
     args = HoleheArgs()
     modules = holehe_core.import_submodules("holehe.modules")
     websites = holehe_core.get_functions(modules, args)
-
     client = httpx.AsyncClient(timeout=args.timeout)
     out = []
-
-    start_time = time.time()
     async with trio.open_nursery() as nursery:
         for website in websites:
             nursery.start_soon(holehe_core.launch_module, website, email, client, out)
     await client.aclose()
     out = sorted(out, key=lambda i: i['name'])
-    holehe_core.print_result(out, args, email, start_time=start_time, websites=websites)
+    # print(out)
+    return out
+    # holehe_core.print_result(out, args, email, start_time=start_time, websites=websites)
 
 async def check_gravatar(email):
     headers = {
@@ -131,7 +147,21 @@ async def check_gravatar(email):
     email_md5 = hashlib.sha256(ready_email.encode('utf-8')).hexdigest()
     url = "https://api.gravatar.com/v3/profiles/{}"
     ready_url = url.format(email_md5)
-    print(f"   --> Raw json url: {ready_url}")
+    result = {
+        "status": "", 
+        "error_message" : "", 
+        "target": ready_email, 
+        "raw_json_url" : ready_url,
+        "name": "",
+        "location" : "",
+        "about_me" : "",
+        "job" : "",
+        "company" : "",
+        "profile_url" : "",
+        "profile_photo" : "",
+        "verified_accounts" : []
+    }
+    # print(f"   --> Raw json url: {ready_url}")
     async with AsyncSession() as session:
             response = await session.request(
                 method = 'GET', 
@@ -151,43 +181,73 @@ async def check_gravatar(email):
                 job = content.get("job_title", "Unknown")
                 company = content.get("company", "Unknown")
 
-                print(f"   --> Name: {display_name}")
-                print(f"   --> Location: {location}")
-                print(f"   --> About me: {description}")
-                print(f"   --> Job: {job}")
-                print(f"   --> Company: {company}")
-                print(f"   --> Profile: {profile_url}")
-                print(f"   --> Profile photo: {avatar_url}")
+                result["name"] = display_name
+                result["profile_url"] = profile_url
+                result["profile_photo"] = avatar_url
+                result["location"] = location
+                result["about_me"] = description
+                result["job"] = job
+                result["company"] = company
+
+                # print(f"   --> Name: {display_name}")
+                # print(f"   --> Location: {location}")
+                # print(f"   --> About me: {description}")
+                # print(f"   --> Job: {job}")
+                # print(f"   --> Company: {company}")
+                # print(f"   --> Profile: {profile_url}")
+                # print(f"   --> Profile photo: {avatar_url}")
 
                 verified_accounts = content.get("verified_accounts", [])
                 if verified_accounts:
-                    print(f"   --> Found social media:")
+                    # print(f"   --> Found social media:")
                     for account in verified_accounts:
                         label = account.get("service_label", "Unknown")
                         link = account.get("url", "No url")
-                        print(f"       * {label}: {link}")
-                else:
-                    print(f"   --> No linked social media")
+                        result["verified_accounts"][label] = link
+                        # print(f"       * {label}: {link}")
+                # else:
+                    # print(f"   --> No linked social media")
 
             elif response.status_code == 404:
-                print("Profile not found")
+                result["status"] = "error"
+                result["error_message"] = "Not found"
+                # print("Profile not found")
             else:
-                print (f"{response.status_code}: unreachable")
+                result["status"] = "error"
+                result["error_message"] = "Unreachable"
+                # print (f"{response.status_code}: unreachable")
+    return result
 
 
 async def validate_mx_records(email):
+    result = {
+        "status": "", 
+        "error_message" : "", 
+        "target": email, 
+        "is_valid": False
+    }
     domain = email.split('@')[1]
     try:
         await dns.asyncresolver.resolve(domain, "MX")
-        print("Email is not fake")
-        return True
+        # print("Email is not fake")
+        result["status"] = "success"
+        result["is_valid"] = True
+        return result
     except Exception:
-        print("Email is fake")
-        return False
+        # print("Email is fake")
+        result["status"] = "success"
+        result["is_valid"] = False
+        return result
     
 def is_disposable(email):
     global _disposable_domains_cache
 
+    result = {
+        "status": "", 
+        "error_message" : "", 
+        "target": email, 
+        "is_disposable": False
+    }
     domain = email.split('@')[1]
 
     if _disposable_domains_cache is None:
@@ -199,11 +259,17 @@ def is_disposable(email):
                     if line:
                         _disposable_domains_cache.add(line)
         except Exception as e:
-            print(e)
-            return False
+            result["status"] = "error"
+            result["error_message"] = e
+            # print(e)
+            return result
         
     if domain in _disposable_domains_cache:
-        print("Email is disposable")
-        return True
-    print("Email is not disposable")
-    return False
+        result["status"] = "success"
+        result["is_disposable"] = True
+        # print("Email is disposable")
+        return result
+    result["status"] = "success"
+    result["is_disposable"] = False
+    # print("Email is not disposable")
+    return result

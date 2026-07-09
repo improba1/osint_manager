@@ -5,7 +5,9 @@ import warnings
 import os
 from dotenv import load_dotenv
 import telethon
+
 from core.name_checker import check_all_sites
+
 from core.email_checker import check_all_emails
 from core.email_checker import check_holehe
 from core.email_checker import check_gravatar
@@ -42,7 +44,7 @@ async def run_email_pipeline(email):
     print(f"Checking is {email} is disposable...")
     is_valid = is_disposable(email)
 
-    if is_valid:
+    if not is_valid:
         return
     
     print(f"Checking {email}...")
