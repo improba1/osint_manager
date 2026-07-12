@@ -1,6 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi import WebSocket
+import json
 import uvicorn
 
 import logging
@@ -73,13 +75,20 @@ async def init_telegram_client():
          "url" : ""
       }
 """
-@app.post("/api/username")
-async def search_by_username(payload: UsernameRequest):
+@app.websocket("/api/username")
+async def search_by_username(websocket: WebSocket):
+    await websocket.accept()
     try:
-        results = await check_all_sites(payload.username)
-        return {"status": "success", "target": payload.username, "results": results}
+        data = await websocket.receive_text()
+        payload = json.loads(data)
+        target_username = payload.get("username")
+        await check_all_sites(websocket, target_username)
+        await websocket.send_json({"status": "COMPLETED"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        await websocket.send_json({"status": "error", "error_message": str(e)})
+    finally:
+        # Кладем трубку
+        await websocket.close()
 
 
 # emails
