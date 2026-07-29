@@ -65,3 +65,4 @@ async def check_all_sites(websocket : WebSocket, username):
    results = await asyncio.gather(*tasks)
    # print(results)
    await websocket.send_json({"status" : "COMPLETED"})
+   return results

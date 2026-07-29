@@ -5,6 +5,7 @@ from curl_cffi.requests import AsyncSession
 from holehe import core as holehe_core
 import dns.asyncresolver
 import httpx
+from fastapi import WebSocket
 import trio 
 import hashlib
 import time
@@ -29,7 +30,7 @@ def _fill_payload(payload, email):
             payload[key] = value.format(email)
     return payload
 
-async def _check_single_email(url, method, service_name, semaphore, template, error_marker):
+async def _check_single_email(websocket: WebSocket, url, method, service_name, semaphore, template, error_marker):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
@@ -62,7 +63,6 @@ async def _check_single_email(url, method, service_name, semaphore, template, er
                     result["status"] = "error"
                     result["error_message"] = "Not found"
                     # print (f"[-] {service_name}: not found")
-                    return result
 
                 else:
                     data = response.json()
@@ -87,25 +87,23 @@ async def _check_single_email(url, method, service_name, semaphore, template, er
                             result["leaks_source"][name] = date_str
                             # print (f"   --> {name} {date_str}")
                     result["status"] = "success"
-                    return result
                 
             elif response.status_code == 404:
                 result["status"] = "error"
                 result["error_message"] = "Not found"
                 # print(f"[-] {service_name}: 404 not found")
-                return result
             else:
                 result["status"] = "error"
                 result["error_message"] = response.status_code
                 # print(f"[-] {service_name}: {response.status_code}")
-                return result
       except Exception:
          result["status"] = "error"
          result["error_message"] = "Unreachable"
         #  print(f"[X] {service_name}: unreachable")
-         return result
-
-async def check_all_emails(email):
+      await websocket.send_json(result)
+      return result
+    
+async def check_all_emails(websocket : WebSocket, email):
     semaphore = asyncio.Semaphore(5)
     tasks = []
 
@@ -115,10 +113,11 @@ async def check_all_emails(email):
         marker = service_data["error_marker"]
         payload_tmp = copy.deepcopy(service_data["payload_template"])
         template = _fill_payload(payload_tmp, email)
-        task = asyncio.create_task(_check_single_email(ready_url, method, service_name, semaphore, template, marker))
+        task = asyncio.create_task(_check_single_email(websocket, ready_url, method, service_name, semaphore, template, marker))
         tasks.append(task)
         await asyncio.sleep(0.2)
     results = await asyncio.gather(*tasks)
+    await websocket.send_json({"status" : "COMPLETED"})
     return results
 
 async def check_holehe(email):

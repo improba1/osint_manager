@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from fastapi import WebSocket
 import json
 import uvicorn
+import anyio
+import trio
 
 import logging
 import warnings
@@ -121,7 +123,7 @@ async def email_is_disposable(payload: EmailRequest):
 @app.post("/api/email/validate")
 async def email_validate(payload: EmailRequest):
     try:
-        results = validate_mx_records(payload.email)
+        results = await validate_mx_records(payload.email)
         return {"status": "success", "target": payload.email, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -146,7 +148,7 @@ async def email_validate(payload: EmailRequest):
 @app.post("/api/email/gravatar")
 async def email_gravatar(payload: EmailRequest):
     try:
-        results = check_gravatar(payload.email)
+        results = await check_gravatar(payload.email)
         return {"status": "success", "target": payload.email, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -168,12 +170,15 @@ async def email_gravatar(payload: EmailRequest):
 @app.post("/api/email/holehe")
 async def email_holehe(payload: EmailRequest):
     try:
-        results = check_holehe(payload.email)
+        def _execute_trio():
+            return trio.run(check_holehe, payload.email) 
+
+        results = await anyio.to_thread.run_sync(_execute_trio)
+        
+        # ВАЖНО: Оборачиваем список results в словарь!
         return {"status": "success", "target": payload.email, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 """
     result = {
         "service_name": service_name, 
@@ -184,13 +189,22 @@ async def email_holehe(payload: EmailRequest):
         "leaks_source" : {}
     }
 """
-@app.post("/api/email")
-async def search_by_email(payload: EmailRequest):
+@app.websocket("/api/email")
+async def search_by_email(websocket : WebSocket):
+    await websocket.accept() 
     try:
-        results = check_all_emails(payload.email)
-        return {"status": "success", "target": payload.email, "results": results}
+        data = await websocket.receive_text()
+        payload = json.loads(data)
+        target_email = payload.get("email")
+        await check_all_emails(websocket, target_email)
+        await websocket.send_json({"status" : "COMPLETED"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # raise HTTPException(status_code=500, detail=str(e))
+        await websocket.send_json({"status": "error", "error_message": str(e)})
+    finally:
+        # Кладем трубку
+        await websocket.close()
+
 
 
 # phone numbers
@@ -204,7 +218,7 @@ async def search_by_email(payload: EmailRequest):
 @app.post("/api/phone/dorks")
 async def search_by_phone(payload: PhoneRequest):
     try:
-        results = await search_google_dorks(payload.phone)
+        results = search_google_dorks(payload.phone)
         return {"status": "success", "target": payload.phone, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -233,7 +247,7 @@ async def phone_country_and_carrier(payload: PhoneRequest):
 @app.post("/api/phone/valid")
 async def phone_valid(payload: PhoneRequest):
     try:
-        results = await check_if_valid(payload.phone)
+        results = check_if_valid(payload.phone)
         return {"status": "success", "target": payload.phone, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -247,7 +261,7 @@ async def phone_valid(payload: PhoneRequest):
 @app.post("/api/phone/viber/chat")
 async def phone_viber_chat(payload: PhoneRequest):
     try:
-        results = await open_viber_chat(payload.phone)
+        results =  open_viber_chat(payload.phone)
         return {"status": "success", "target": payload.phone, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -261,7 +275,7 @@ async def phone_viber_chat(payload: PhoneRequest):
 @app.post("/api/phone/telegram/chat")
 async def phone_telegram_chat(payload: PhoneRequest):
     try:
-        results = await open_telegram_chat(payload.phone)
+        results =  open_telegram_chat(payload.phone)
         return {"status": "success", "target": payload.phone, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -275,7 +289,7 @@ async def phone_telegram_chat(payload: PhoneRequest):
 @app.post("/api/phone/whatsapp/chat")
 async def phone_whatsapp_chat(payload: PhoneRequest):
     try:
-        results = await open_watsapp_chat(payload.phone)
+        results =  open_watsapp_chat(payload.phone)
         return {"status": "success", "target": payload.phone, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -10,6 +10,7 @@ from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContacts
 
 
 def _clean_phone_number(phone):
+    
     phone = re.sub(r"\D", "", phone)
     return phone
 
@@ -91,6 +92,8 @@ def open_viber_chat(phone):
     return result
 
 def check_if_valid(phone_object):
+    phone_object = _get_phone_object(phone_object)
+    print(phone_object)
     result = {
         "is_valid" : False
     }
@@ -102,6 +105,7 @@ def check_if_valid(phone_object):
     return result
     
 async def find_country_and_carrier(phone_object):
+    phone_object = _get_phone_object(phone_object)
     result = {
         "country" : "", 
         "carrier_name" : ""
@@ -115,6 +119,7 @@ async def find_country_and_carrier(phone_object):
     return result
 
 def search_google_dorks(phone_object):
+    phone_object = _get_phone_object(phone_object)
     result = {
         "url": ""
     }
