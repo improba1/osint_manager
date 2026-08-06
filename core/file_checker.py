@@ -4,6 +4,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 
 def _count_gps(deg, min, sec):
     result = float(deg) + (float(min) / 60) + (float(sec) / 3600)
+    print(result)
     return result
 
 def extract_image_metadata(file_bytes):
@@ -61,8 +62,8 @@ def extract_image_metadata(file_bytes):
     except Exception as e:   
         result["error_message"] = str(e)
         result["status"] = "error"
-        # print(result)
+        print(result)
         return result
     result["status"] = "success"
-    # print(result)
+    print(result)
     return result

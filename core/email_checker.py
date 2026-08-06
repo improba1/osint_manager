@@ -101,6 +101,7 @@ async def _check_single_email(websocket: WebSocket, url, method, service_name, s
          result["error_message"] = "Unreachable"
         #  print(f"[X] {service_name}: unreachable")
       await websocket.send_json(result)
+      print(result)
       return result
     
 async def check_all_emails(websocket : WebSocket, email):
@@ -118,7 +119,6 @@ async def check_all_emails(websocket : WebSocket, email):
         await asyncio.sleep(0.2)
     results = await asyncio.gather(*tasks)
     await websocket.send_json({"status" : "COMPLETED"})
-    return results
 
 async def check_holehe(email):
     args = HoleheArgs()
@@ -131,7 +131,7 @@ async def check_holehe(email):
             nursery.start_soon(holehe_core.launch_module, website, email, client, out)
     await client.aclose()
     out = sorted(out, key=lambda i: i['name'])
-    # print(out)
+    print(out)
     return out
     # holehe_core.print_result(out, args, email, start_time=start_time, websites=websites)
 
@@ -215,6 +215,7 @@ async def check_gravatar(email):
                 result["status"] = "error"
                 result["error_message"] = "Unreachable"
                 # print (f"{response.status_code}: unreachable")
+    print(result)
     return result
 
 
@@ -231,11 +232,13 @@ async def validate_mx_records(email):
         # print("Email is not fake")
         result["status"] = "success"
         result["is_valid"] = True
+        print(result)
         return result
     except Exception:
         # print("Email is fake")
         result["status"] = "success"
         result["is_valid"] = False
+        print(result)
         return result
     
 def is_disposable(email):
@@ -261,14 +264,17 @@ def is_disposable(email):
             result["status"] = "error"
             result["error_message"] = e
             # print(e)
+            print(result)
             return result
         
     if domain in _disposable_domains_cache:
         result["status"] = "success"
         result["is_disposable"] = True
         # print("Email is disposable")
+        print(result)
         return result
     result["status"] = "success"
     result["is_disposable"] = False
     # print("Email is not disposable")
+    print(result)
     return result

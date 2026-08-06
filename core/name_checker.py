@@ -49,6 +49,7 @@ async def _check_single_site(websocket : WebSocket, url, service_name, semaphore
          result["error_message"] = "unreachable"
          # print(f"[X] {service_name}: unreachable")
       await websocket.send_json(result)
+      print(result)
       return result
 
 
@@ -65,4 +66,3 @@ async def check_all_sites(websocket : WebSocket, username):
    results = await asyncio.gather(*tasks)
    # print(results)
    await websocket.send_json({"status" : "COMPLETED"})
-   return results
