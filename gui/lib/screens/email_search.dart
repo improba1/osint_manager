@@ -27,7 +27,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
   List<dynamic>? _leaksResults;
 
   void _startAnalysis() async {
-    // ПРЕДОХРАНИТЕЛЬ ОТ ДВОЙНЫХ ЗАПУСКОВ
     if (_isStageOneRunning || _activeDeepTasks > 0) return;
 
     final email = _emailController.text.trim();
@@ -279,7 +278,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
 
   Widget _buildStatusCard({required ThemeData theme, required String title, required String value, required bool isPositive, required IconData icon}) {
     final bool isScanning = value == 'SCANNING...';
-    // Строгие корпоративные цвета
     final color = isScanning ? theme.disabledColor : (isPositive ? const Color(0xFF10B981) : theme.colorScheme.error);
     
     return Card(
@@ -304,23 +302,20 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
   }
 
   Widget _buildGravatarCard(ThemeData theme) {
-    // Безопасное извлечение данных
     final name = _gravatarResult?['name'] ?? '';
     final photoUrl = _gravatarResult?['profile_photo'] ?? '';
     final location = _gravatarResult?['location'] ?? '';
     final profileUrl = _gravatarResult?['profile_url'] ?? '';
     final job = _gravatarResult?['job'] ?? '';
     
-    // Показываем карточку, если есть хотя бы имя ИЛИ фото ИЛИ профиль
     if (name.isEmpty && photoUrl.isEmpty && profileUrl.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Card(
       margin: const EdgeInsets.only(top: 16),
-      clipBehavior: Clip.antiAlias, // Обрезает анимацию клика по границам карточки
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        // Клик работает только если ссылка на профиль действительно есть
         onTap: profileUrl.isNotEmpty
             ? () async {
                 final Uri url = Uri.parse(profileUrl);
@@ -366,7 +361,7 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
                               style: TextStyle(color: theme.colorScheme.primary, decoration: TextDecoration.underline, fontSize: 12),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.open_in_new, size: 12, color: theme.colorScheme.primary), // Иконка внешнего перехода
+                            Icon(Icons.open_in_new, size: 12, color: theme.colorScheme.primary),
                           ],
                         ),
                       ),
@@ -381,7 +376,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
   }
 
   Widget _buildHoleheSection(ThemeData theme) {
-    // 1. Находим все зарегистрированные аккаунты
     final foundAccounts = _holeheResults!.where((site) {
       if (site == null || site is! Map) return false;
       return site['exists'] == true || site['exists'] == 'true';
@@ -389,7 +383,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
     
     if (foundAccounts.isEmpty) return const SizedBox.shrink();
 
-    // 2. Сортируем: отделяем аккаунты с ценными данными (телефон/почта) от обычных
     final List<Map> accountsWithData = [];
     final List<Map> regularAccounts = [];
 
@@ -412,7 +405,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
           child: Text('REGISTERED ACCOUNTS', style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
         ),
 
-        // 3. ОТРИСОВКА ЦЕННЫХ АККАУНТОВ (Выделенные карточки)
         if (accountsWithData.isNotEmpty)
           ...accountsWithData.map((site) {
             final String name = site['name'] ?? site['domain'] ?? 'Unknown';
@@ -422,7 +414,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               shape: RoundedRectangleBorder(
-                // Синяя рамка, чтобы привлечь внимание к ценной находке
                 side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)), 
                 borderRadius: BorderRadius.circular(6)
               ),
@@ -440,7 +431,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
                     ),
                     const SizedBox(height: 12),
                     
-                    // Строка с телефоном (выделена изумрудным!)
                     if (phone.isNotEmpty)
                       Row(
                         children: [
@@ -452,7 +442,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
                         ],
                       ),
                       
-                    // Строка с резервной почтой
                     if (email.isNotEmpty)
                       Padding(
                         padding: EdgeInsets.only(top: phone.isNotEmpty ? 8.0 : 0),
@@ -475,7 +464,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
         if (accountsWithData.isNotEmpty && regularAccounts.isNotEmpty)
           const SizedBox(height: 16),
 
-        // 4. ОТРИСОВКА ОБЫЧНЫХ АККАУНТОВ (Облако тегов)
         if (regularAccounts.isNotEmpty)
           Wrap(
             spacing: 8,
@@ -496,13 +484,11 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
   Widget _buildLeaksSection(ThemeData theme) {
     if (_leaksResults == null || _leaksResults!.isEmpty) return const SizedBox.shrink();
 
-    // 1. Проверяем, есть ли вообще хоть одна реальная утечка среди всех сервисов
     bool hasAnyBreach = false;
     for (var site in _leaksResults!) {
       if (site != null && site is Map && site['status'] != 'error' && site['status'] != 'ERROR') {
         final Map<String, dynamic> src = site['leaks_source'] is Map ? site['leaks_source'] : {};
         final int c = int.tryParse(site['leaks']?.toString() ?? '0') ?? 0;
-        // Если счетчик > 0 ИЛИ список баз не пустой
         if (c > 0 || src.isNotEmpty) {
           hasAnyBreach = true;
           break;
@@ -510,7 +496,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
       }
     }
 
-    // 2. Если ни одной утечки не найдено И глубокий поиск завершен - рисуем зеленую карточку
     if (!hasAnyBreach) {
       if (_activeDeepTasks == 0) {
         return Padding(
@@ -532,7 +517,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
       return const SizedBox.shrink();
     }
 
-    // 3. Рисуем карточки для всех сервисов
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -549,14 +533,11 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
           
           final Map<String, dynamic> leaksSource = site['leaks_source'] is Map ? site['leaks_source'] : {};
           
-          // === ИСПРАВЛЕНИЕ ===
-          // Если API говорит leaks: 0, но список баз полный, мы берем длину списка баз!
           int parsedCount = int.tryParse(site['leaks']?.toString() ?? '0') ?? 0;
           final int leaksCount = (parsedCount == 0 && leaksSource.isNotEmpty) ? leaksSource.length : parsedCount;
           
           final bool hasLeaks = leaksCount > 0;
 
-          // Сортировка по алфавиту
           final List<String> sortedLeakNames = leaksSource.keys.toList()
             ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
@@ -622,7 +603,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
                           itemCount: sortedLeakNames.length,
                           itemBuilder: (context, index) {
                             final dbName = sortedLeakNames[index];
-                            // Достаем дату утечки, если она есть
                             final dbDate = leaksSource[dbName]?.toString().trim() ?? '';
                             
                             return Padding(
@@ -637,7 +617,6 @@ class _EmailSearchScreenState extends State<EmailSearchScreen> {
                                       style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 13, fontWeight: FontWeight.w600),
                                     ),
                                   ),
-                                  // Если есть дата, выводим её справа аккуратным шрифтом
                                   if (dbDate.isNotEmpty)
                                     Text(
                                       dbDate,

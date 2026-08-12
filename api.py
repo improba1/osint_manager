@@ -320,11 +320,12 @@ async def phone_telegram(payload: PhoneRequest):
 """
     result = { 
         "status":"processing", 
-        "has_exif": False, 
+        "has_exif": False,
+        "raw_exif": {},
         "error_message": "", 
         "hardware": {}, 
         "software": {}, 
-        "gps": {} 
+        "gps": {}
     }
 """
 @app.post("/api/metadata")
@@ -332,7 +333,7 @@ async def extract_metadata(file: UploadFile = File(...)):
     try:
         file_bytes = await file.read()
         metadata = extract_image_metadata(file_bytes)
-        return {"status": "success", "filename": file.filename, "metadata": metadata}
+        return {"status": "success", "filename": file.filename, "results": metadata}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

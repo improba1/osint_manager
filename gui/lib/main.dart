@@ -1,8 +1,6 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Импортируем все наши модули-экраны
 import 'package:osint_frontend/screens/username_search.dart';
 import 'package:osint_frontend/screens/email_search.dart';
 import 'package:osint_frontend/screens/phone_search.dart';
@@ -20,7 +18,6 @@ class OsintApp extends StatefulWidget {
 }
 
 class _OsintAppState extends State<OsintApp> {
-  // Темная тема по умолчанию
   ThemeMode _themeMode = ThemeMode.dark;
 
   void _toggleTheme() {
@@ -29,14 +26,13 @@ class _OsintAppState extends State<OsintApp> {
     });
   }
 
-  // --- СТРОГАЯ СВЕТЛАЯ ТЕМА ---
   ThemeData get _lightTheme {
     return ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color(0xFFF8FAFC), // Светло-серый фон
+      scaffoldBackgroundColor: const Color(0xFFF8FAFC), 
       colorScheme: const ColorScheme.light(
-        primary: Color(0xFF2563EB), // Строгий синий
-        surface: Color(0xFFFFFFFF), // Белые карточки
+        primary: Color(0xFF2563EB), 
+        surface: Color(0xFFFFFFFF), 
         error: Color(0xFFDC2626),
       ),
       textTheme: GoogleFonts.shareTechMonoTextTheme(ThemeData.light().textTheme),
@@ -64,14 +60,13 @@ class _OsintAppState extends State<OsintApp> {
     );
   }
 
-  // --- СТРОГАЯ ТЕМНАЯ ТЕМА ---
   ThemeData get _darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0F172A), // Глубокий сланцевый фон
+      scaffoldBackgroundColor: const Color(0xFF0F172A), 
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF3B82F6), // Приглушенный синий
-        surface: Color(0xFF1E293B), // Фон карточек и меню
+        primary: Color(0xFF3B82F6), 
+        surface: Color(0xFF1E293B), 
         error: Color(0xFFEF4444),
       ),
       textTheme: GoogleFonts.shareTechMonoTextTheme(ThemeData.dark().textTheme),
@@ -129,7 +124,6 @@ class _MainDashboardState extends State<MainDashboard> {
   int _selectedIndex = 0;
 
   Widget _buildDashboardContent() {
-    // ВАЖНО: Мы больше не передаем accentColor в экраны!
     switch (_selectedIndex) {
       case 0:
         return const UsernameSearchScreen(key: ValueKey('USERNAME'));
@@ -194,7 +188,7 @@ class _MainDashboardState extends State<MainDashboard> {
             child: Container(
               color: theme.scaffoldBackgroundColor,
               child: Padding(
-                padding: const EdgeInsets.all(40.0), // Увеличили отступы для чистоты
+                padding: const EdgeInsets.all(40.0),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: _buildDashboardContent(),

@@ -1,4 +1,3 @@
-// lib/screens/username_search_screen.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:osint_frontend/api_service.dart';
@@ -83,12 +82,12 @@ class _UsernameSearchScreenState extends State<UsernameSearchScreen> {
             ),
             const SizedBox(width: 16),
             SizedBox(
-              height: 56, // Стандартная высота Material 3
+              height: 56, 
               width: 180,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary, // Белый текст на синей кнопке
+                  foregroundColor: colorScheme.onPrimary,  
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
@@ -148,7 +147,6 @@ class _UsernameSearchScreenState extends State<UsernameSearchScreen> {
         final statusStr = site['status']?.toString().toLowerCase() ?? '';
         final bool isFound = statusStr == 'found' || statusStr == 'success' || statusStr == 'true' || statusStr == '200';
         
-        // Строгие семантические цвета
         final statusColor = isFound ? const Color(0xFF10B981) : theme.colorScheme.error;
 
         return Card(

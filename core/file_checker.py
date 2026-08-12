@@ -11,10 +11,11 @@ def extract_image_metadata(file_bytes):
     result = { 
         "status":"processing", 
         "has_exif": False, 
+        "raw_exif": {},
         "error_message": "", 
         "hardware": {}, 
         "software": {}, 
-        "gps": {} 
+        "gps": {}
     }
     try:
         with Image.open(io.BytesIO(file_bytes)) as img:
@@ -22,13 +23,14 @@ def extract_image_metadata(file_bytes):
             print(raw_exif)
             if raw_exif:
                 result["has_exif"] = True
+                result["raw_exif"] = {str(k): str(v) for k, v in raw_exif.items()}
                 raw_gps_info = None
                 for tag_id, value in raw_exif.items():
                     tag_name = TAGS.get(tag_id)
                     if tag_name == "Make" or tag_name == "Model":
-                        result["hardware"][tag_name] = value
+                        result["hardware"][tag_name] = str(value)
                     elif tag_name == "DateTime" or tag_name == "Software":
-                        result["software"][tag_name] = value
+                        result["software"][tag_name] = str(value)
                     elif tag_name == "GPSInfo":
                         if isinstance(value, int):
                             raw_gps_info = raw_exif.get_ifd(tag_id)
@@ -55,8 +57,8 @@ def extract_image_metadata(file_bytes):
                             longitude = _count_gps(gps_longitude[0], gps_longitude[1], gps_longitude[2])
                             if gps_longitude_ref == 'W':
                                 longitude *= -1
-                            result["gps"]["latitude"] = round(latitude, 6)
-                            result["gps"]["longitude"] = round(longitude, 6)
+                            result["gps"]["latitude"] = str(round(latitude, 6))
+                            result["gps"]["longitude"] = str(round(longitude, 6))
                         except:
                             pass
     except Exception as e:   

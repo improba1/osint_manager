@@ -122,4 +122,26 @@ class ApiService {
   Future<Map<String, dynamic>> checkPhoneTelegramChat(String phone) async => await _postPhoneRequest('/api/phone/telegram/chat', phone);
   Future<Map<String, dynamic>> checkPhoneWhatsapp(String phone) async => await _postPhoneRequest('/api/phone/whatsapp/chat', phone);
   Future<Map<String, dynamic>> checkPhoneTelegramProfile(String phone) async => await _postPhoneRequest('/api/phone/telegram', phone);
+
+  Future<Map<String, dynamic>> uploadFileForExif(List<int> fileBytes, String fileName) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/metadata'));
+      
+      final safeFileName = Uri.encodeComponent(fileName);
+      request.files.add(
+        http.MultipartFile.fromBytes('file', fileBytes, filename: safeFileName),
+      );
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        return {'status': 'error', 'error_message': 'Server Error: ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'status': 'error', 'error_message': e.toString()};
+    }
+  }
 }
