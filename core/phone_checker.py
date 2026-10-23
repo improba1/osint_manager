@@ -41,19 +41,16 @@ async def check_telegram(phone, tg_client):
                 result["last_name"] = user.last_name
                 result["status"] = "success"
                 await tg_client(DeleteContactsRequest([user.id]))
-                print(result)
                 return result
         else:
             result["status"] = "error"
             result["error_message"] = "User not found"
             # print ("User not found")
-            print(result)
             return result
     except Exception as e:
         result["status"] = "error"
         result["error_message"] = e
         # print(e)
-        print(result)
         return result
 
 def _get_phone_object(phone):
@@ -72,7 +69,6 @@ def open_watsapp_chat(phone):
     # print(f"Opening {whatsapp_url} via WhatsApp...")
     result["url"] = whatsapp_url
     # webbrowser.open(whatsapp_url)
-    print(result)
     return result
 
 def open_telegram_chat(phone):
@@ -83,7 +79,6 @@ def open_telegram_chat(phone):
     # print(f"Opening {telegram_url} via Telegram...")
     result["url"] = telegram_url
     # webbrowser.open(telegram_url)
-    print(result)
     return result
 
 def open_viber_chat(phone):
@@ -94,22 +89,18 @@ def open_viber_chat(phone):
     # print(f"Opening {viber_url} via Viber...")
     result["url"] = viber_url
     # webbrowser.open(viber_url)
-    print(result)
     return result
 
 def check_if_valid(phone_object):
     phone_object = _get_phone_object(phone_object)
-    print(phone_object)
     result = {
         "is_valid" : False
     }
     is_valid = phonenumbers.is_valid_number(phone_object)
     if not is_valid:
         # print(f"Phone is not valid.")
-        print(result)
         return result
     result["is_valid"] = True
-    print(result)
     return result
     
 async def find_country_and_carrier(phone_object):
@@ -124,7 +115,6 @@ async def find_country_and_carrier(phone_object):
     result["carrier_name"] = carrier_name
     # print (f"Country: {geocoder.description_for_number(phone_object, "en")}")
     # print(f"Carrier name: {carrier.name_for_number(phone_object, "en")}")
-    print(result)
     return result
 
 def search_google_dorks(phone_object):
@@ -142,7 +132,6 @@ def search_google_dorks(phone_object):
     safe_url = f"https://www.google.com/search?q={quote_plus(dork_query)}"
     result["url"] = safe_url
     # webbrowser.open(safe_url)
-    print(result)
     return result
 
     

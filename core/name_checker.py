@@ -49,7 +49,6 @@ async def _check_single_site(websocket : WebSocket, url, service_name, semaphore
          result["error_message"] = "unreachable"
          # print(f"[X] {service_name}: unreachable")
       await websocket.send_json(result)
-      print(result)
       return result
 
 

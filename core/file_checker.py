@@ -4,7 +4,6 @@ from PIL.ExifTags import TAGS, GPSTAGS
 
 def _count_gps(deg, min, sec):
     result = float(deg) + (float(min) / 60) + (float(sec) / 3600)
-    print(result)
     return result
 
 def extract_image_metadata(file_bytes):
@@ -20,7 +19,6 @@ def extract_image_metadata(file_bytes):
     try:
         with Image.open(io.BytesIO(file_bytes)) as img:
             raw_exif = img.getexif()
-            print(raw_exif)
             if raw_exif:
                 result["has_exif"] = True
                 result["raw_exif"] = {str(k): str(v) for k, v in raw_exif.items()}
@@ -38,7 +36,6 @@ def extract_image_metadata(file_bytes):
                             raw_gps_info = value
                 
                 if raw_gps_info:
-                    print(raw_gps_info)
                     gps_clean_data = {}
                     for gps_tag_id, value in raw_gps_info.items():
                         tag_name = GPSTAGS.get(gps_tag_id)
@@ -64,8 +61,6 @@ def extract_image_metadata(file_bytes):
     except Exception as e:   
         result["error_message"] = str(e)
         result["status"] = "error"
-        print(result)
         return result
     result["status"] = "success"
-    print(result)
     return result
